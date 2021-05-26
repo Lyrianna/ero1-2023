@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.random import choice as np_choice
 
 
 class AntColony(object):
