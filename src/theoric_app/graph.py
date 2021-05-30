@@ -1,202 +1,118 @@
-"""Graph module.
+import graphviz
+import utils
 
-Provide an implementation of graphs with adjacency lists.
+# class Edge:
+#
+#     def __init__(self, weight):
+#         self.weight = weight
+#
+#     def __str__(self):
+#         return f'w={self.weight:.3f}'
+#
 
-In a graph, vertices are considered numbered from 0 to the order of the graph
-minus one. The vertex number can then be used to access its adjacency list.
+class Node:
 
-"""
+    def __init__(self, node_id):
+        self.id = node_id
+        self.neighbours = []
+
+    def add_neighbour(self, neighbour_node):
+        self.neighbours.append(neighbour_node.id)
+
+    def __str__(self):
+        return f'id:{self.id} -> {self.neighbours}'
 
 
 class Graph:
-    """ Simple class for graph: adjacency lists
-
-    Attributes:
-        order (int): Number of vertices.
-        directed (bool): True if the graph is directed. False otherwise.
-        adjlists (List[List[int]]): Lists of connected vertices for each vertex.
 
     """
-
-    def __init__(self, order, directed, labels=None):
-        """Init graph, allocate adjacency lists
-
-        Args:
-            order (int): Number of nodes.
-            directed (bool): True if the graph is directed. False otherwise.
-            labels (list[str]): optionnal vector of vertex labels
-        """
-
-        self.order = order
-        self.directed = directed
-        self.adjmat = []
-        for _ in range(order):
-            self.adjmat.append([])
-        self.labels = labels
-
-    def addedge(self, src, dst, weight):
-        """Add egde to graph.
-
-        Args:
-            src (int): Source vertex.
-            dst (int): Destination vertex.
-
-        Raises:
-            IndexError: If any vertex index is invalid.
-
-        """
-        if src >= self.order or src < 0:
-            raise IndexError("Invalid src index")
-        if dst >= self.order or dst < 0:
-            raise IndexError("Invalid dst index")
-
-        self.adjlists[src].append(dst)
-        if not self.directed and dst != src:
-            self.adjlists[dst].append(src)
-
-    def addvertex(self, number=1, labels=None):
-        """Add number vertices to graph.
-
-        Args:
-            ref (Graph).
-            number (int): Number of vertices to add.
-
-        """
-
-        # Increment order and extend adjacency list
-        self.order += number
-        for _ in range(number):
-            self.adjlists.append([])
-        if labels:
-            self.labels += labels
-
-    def removeedge(self, src, dst):
-        """Remove egde from the graph.
-
-        Args:
-            src (int): Source vertex.
-            dst (int): Destination vertex.
-
-        Raises:
-            IndexError: If any vertex index is invalid.
-
-        """
-
-        if src >= self.order or src < 0:
-            raise IndexError("Invalid src index")
-        if dst >= self.order or dst < 0:
-            raise IndexError("Invalid dst index")
-        if dst in self.adjlists[src]:
-            self.adjlists[src].remove(dst)
-            if not self.directed and dst != src:
-                self.adjlists[dst].remove(src)
-
-
-def todot(G):
-    """Dot format of graph.
-
+    Undirected ! (u,v) == (v,u) !
     Args:
-        Graph
-
-    Returns:
-        str: String storing dot format of graph.
-
+        edges: list of edge (u, v, w)
     """
+    def __init__(self, edges):
+        self.degree = 0
+        self.nodes = {}  # Dictionary indexed on (node_id)
+        self.edges = {}  # Dictionary indexed on (u, v) with u < v
+        if edges is not None:
+            for edge in edges:
+                self.add_edge(*edge)
 
-    if G.directed:
-        link = " -> "
-        dot = "digraph {\n"
-    else:
-        link = " -- "
-        dot = "graph {\n"
+    def __str__(self):
+        return str([str(edge) for edge in self.edges])
 
-    for s in range(G.order):
-        if G.labels:
-            dot += "  " + str(s) + ' [label = "' + G.labels[s] + '"]\n'
-        else:
-            dot += "  " + str(s) + '\n'
-        for adj in G.adjlists[s]:
-            if G.directed or adj <= s:
-                dot += str(s) + link + str(adj) + "\n"
+    def to_dot(self, filename=None):
+        dot = graphviz.Graph()
+        # Set styling
+        dot.attr('node', shape='circle')
+        dot.attr('edge')
+        # Add nodes
+        for node_id in self.nodes:
+            dot.node(str(node_id))
+        # Add edges
+        for pair, dist in self.edges.items():
+            dot.edge(str(pair[0]), str(pair[1]), label=str(dist))
+        dot.render(view=True, cleanup=True, filename=filename)
+        return dot
 
-    dot += "}"
-    return dot
+    def add_node(self, node_id):
+        if node_id not in self.nodes:
+            new_node = Node(node_id)
+            self.degree += 1
+            self.nodes[node_id] = new_node
+            return new_node
+        return self.nodes[node_id]
 
+    def remove_node(self, node_id):
+        node = self.nodes.get(node_id)
+        if node is None:
+            return
+        for neighbour_id, neighbour in node.neighbours.items():
+            del neighbour.node.neighbours[node_id]  # Remove neighbours ref to this node
+            self.edges.pop(utils.normalize_pair(node_id, neighbour_id), None)  # Remove the edge from the graph
+        self.degree -= 1
+        del self.nodes[node_id]
 
-def display(G, eng=None):
-    """
-    *Warning:* Made for use within IPython/Jupyter only.
-    eng: graphivz.Source "engine" optional argument (try "neato", "fdp", "sfdp", "circo")
+    def has_edge(self, u, v):
+        return utils.normalize_pair(u, v) in self.edges
 
-    """
+    def get_edge(self, u, v):  # No checks!
+        return self.edges[utils.normalize_pair(u, v)]
 
-    try:
-        from graphviz import Source
-        from IPython.display import display
-    except:
-        raise Exception("Missing module: graphviz and/or IPython.")
-    display(Source(todot(G), engine=eng))
+    def add_edge(self, u, v, weight):  # Undirected for now
 
+        # Get (or create if necessary) the two nodes
+        start_node = self.add_node(u)
+        end_node = self.add_node(v)
 
-# load / save gra format
+        # Link the two nodes
+        start_node.add_neighbour(end_node)
+        end_node.add_neighbour(start_node)
 
-def loadgra(filename):
-    """Build a new graph from a GRA file.
+        key = utils.normalize_pair(u, v)
+        self.edges[key] = weight
 
-    Args:
-        filename (str): File to load.
+    def add_edges(self, edges):
+        for edge in edges:
+            self.add_edge(*edge)
 
-    Returns:
-        Graph: New graph.
+    def remove_edge(self, u, v):
 
-    Raises:
-        FileNotFoundError: If file does not exist.
+        # Check if edge actually exists
+        key = utils.normalize_pair(u, v)
+        edge = self.edges.pop(key, None)
+        if edge is None:
+            return
 
-    """
+        # If so, remove link between each node
+        del self.nodes[u].neighbours[v]  # Remove neighbouring ref u -> v
+        del self.nodes[v].neighbours[u]  # Remove neighbouring ref v -> u
 
-    f = open(filename)
-    lines = f.readlines()
-    f.close()
+        # Remove the edge from the graph
+        del self.edges[key]
 
-    infos = {}
-    i = 0
-    while '#' in lines[i]:
-        (key, val) = lines[i][1:].strip().split(": ")
-        infos[key] = val
-        i += 1
+    def iter_edges(self):
+        return [(*k, v) for k, v in self.edges.items()]
 
-    directed = bool(int(lines[i]))
-    order = int(lines[i + 1])
-
-    if infos and "labels" in infos:
-        labels = infos["labels"].split(',')  # labels is a list of str
-        G = Graph(order, directed, labels)  # a graph with labels
-    else:
-        G = Graph(order, directed)  # a graph without labels
-    if infos:
-        G.infos = infos
-
-    for line in lines[i + 2:]:
-        edge = line.strip().split(' ')
-        (src, dst) = (int(edge[0]), int(edge[1]))
-        G.addedge(src, dst)
-    return G
-
-
-def savegra(G, fileOut):
-    gra = ""
-    if G.labels:
-        lab = "#labels: "
-        for i in range(G.order - 1):
-            lab += G.labels[i] + ','
-        lab += G.labels[-1]
-        gra += lab + '\n'
-    gra += str(int(G.directed)) + '\n'
-    gra += str(G.order) + '\n'
-    for s in range(G.order):
-        for adj in G.adjlists[s]:
-            if G.directed or s >= adj:
-                gra += str(s) + " " + str(adj) + '\n'
-    fout = open(fileOut, mode='w')
-    fout.write(gra)
-    fout.close()
+    def neighbours(self, node_id):
+        return self.nodes[node_id].neighbours
