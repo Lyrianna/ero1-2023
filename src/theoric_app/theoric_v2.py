@@ -7,6 +7,9 @@ import edmonds
 import euler
 import utils
 
+import gvanim
+import imageio
+
 
 def main():
 
@@ -34,7 +37,7 @@ def main():
     # initial_graph.add_edges(edges)
     graph_initial = GraphAdjMat(mat=mat)
     print(graph_initial)
-    graph_initial.to_dot(filename='initial_graph')
+    # graph_initial.to_dot(filename='initial_graph')
 
     """Find odd degree nodes"""
     odd_degree_nodes = graph_initial.odd_degree_nodes()
@@ -90,6 +93,48 @@ def main():
             final_path += real_path
 
     print(final_path)
+
+    """
+    Render final path as a gif (optional)
+    """
+    ga = gvanim.Animation()
+    for edge in graph_initial.edge_list():
+        ga.add_edge(edge[0], edge[1])
+    ga.next_step()
+
+    visit_times = {}
+    for edge in final_path:
+        edge = utils.normalize_pair(*edge)
+        visit_times[edge] = 0
+
+    drawn_path = []
+
+    def draw_path():
+        for edge in drawn_path:
+            if visit_times[edge] > 1:
+                ga.highlight_edge(*edge, color='blue')
+            else:
+                ga.highlight_edge(*edge, color='green')
+
+    for raw_edge in final_path:
+        new_edge = utils.normalize_pair(*raw_edge)
+        draw_path()
+        ga.highlight_edge(*new_edge, color='red')
+        drawn_path.append(new_edge)
+        visit_times[new_edge] += 1
+        ga.next_step()
+
+    # Final result
+    draw_path()
+    ga.next_step()
+
+    ga_graphs = ga.graphs()
+    files = gvanim.render(ga_graphs, 'render/step', 'png', size=1000)
+    print(files)
+    with imageio.get_writer('render.gif', mode='I', duration=0.8) as writer:
+        for file in files:
+            image = imageio.imread(file)
+            writer.append_data(image)
 
 
 if __name__ == '__main__':
