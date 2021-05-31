@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import shortest_path
 
 import graphviz
@@ -7,14 +6,16 @@ import graphviz
 
 class GraphAdjMat:
 
-    def __init__(self, degree=0, mat=None, edges=None, no_edge_value=0):
+    def __init__(self, degree=0, mat=None, edges=None, osmnx_graph=None, no_edge_value=0):
         self.degree = degree
+
         if mat is not None:
             self.degree = len(mat)
             self.mat = np.array(mat)
         else:
             self.mat = np.full([degree, degree], no_edge_value)
         self.no_edge_value = no_edge_value
+
         if edges is not None:
             self.add_edges(edges)
 
@@ -53,14 +54,15 @@ class GraphAdjMat:
                     edges.append((i, j, self.mat[i, j]))
         return edges
 
-    def shortest_path(self, u, v):
+    @staticmethod
+    def shortest_path(csr_mat, u, v):
         """
+        :param csr_mat: compressed sparse row matrix (using csr_matrix on self.mat)
         :param u: starting node
         :param v: end node
         :return: path, length
         """
-        graph = csr_matrix(self.mat)
-        distance_matrix, predecessors = shortest_path(graph, directed=False, indices=u, return_predecessors=True)
+        distance_matrix, predecessors = shortest_path(csr_mat, directed=False, indices=u, return_predecessors=True)
         node = v
         path = []
         while node != u:
@@ -86,3 +88,14 @@ class GraphAdjMat:
                     dot.edge(str(i), str(j), label=str(self.mat[i, j]))
         dot.render(view=True, cleanup=True, filename=filename)
         return dot
+
+    def load_osmnx_graph(self, osmnx_graph):
+
+        self.no_edge_value = 0
+        self.degree = len(osmnx_graph.nodes)
+        self.mat = np.full([self.degree, self.degree], self.no_edge_value)
+
+        for (start_id, end_id, edge_data) in osmnx_graph.edges(data=True):
+            if start_id == end_id:
+                continue
+            self.add_edge(start_id, end_id, edge_data['length'])

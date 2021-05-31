@@ -1,14 +1,6 @@
 import graphviz
 import utils
 
-# class Edge:
-#
-#     def __init__(self, weight):
-#         self.weight = weight
-#
-#     def __str__(self):
-#         return f'w={self.weight:.3f}'
-#
 
 class Node:
 
@@ -39,7 +31,11 @@ class Graph:
                 self.add_edge(*edge)
 
     def __str__(self):
-        return str([str(edge) for edge in self.edges])
+        result = 'Graph {\n'
+        for node_id, node in self.nodes.items():
+            result += '  ' + str(node) + '\n'
+        result += '}'
+        return result
 
     def to_dot(self, filename=None):
         dot = graphviz.Graph()

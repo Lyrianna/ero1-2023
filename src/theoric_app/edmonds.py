@@ -172,10 +172,6 @@ def min_weight_matching(G, maxcardinality=False):
        If maxcardinality is True, compute the maximum-cardinality matching
        with minimum weight among all maximum-cardinality matchings.
 
-    weight: string, optional (default='weight')
-       Edge data key corresponding to the edge weight.
-       If key not found, uses 1 as weight.
-
     Returns
     -------
     matching : set
