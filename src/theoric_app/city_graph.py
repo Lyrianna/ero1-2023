@@ -1,24 +1,47 @@
+"""
+
+Class Edge
+
+"""
+
+
 class Edge:
 
     def __init__(self, length, initial_pheromone_value):
         self.length = length
         # Subject to change, use a dictionary of values instead?
-        self.pheromone_value = initial_pheromone_value
-        self.visited = False
+        self.pheromone = initial_pheromone_value
+
+    def spread_pheromone(self):
+        self.pheromone += 1.0 / self.length
 
     def __str__(self):
-        return f'length={self.length:.3f}, pheromone={self.pheromone_value:.5f}, visited={self.visited}'
+        return f'length={self.length:.3f}, pheromone={self.pheromone:.5f}'
 
 
-# class Neighbour:
-#
-#     def __init__(self, node, connecting_edge):
-#         self.node = node
-#         self.edge = connecting_edge
-#
-#     def __str__(self):
-#         return f'(id:{self.node.id}: {self.edge})'
-#
+"""
+
+Class Neighbour
+
+"""
+
+
+class Neighbour:
+
+    def __init__(self, node, connecting_edge):
+        self.node = node
+        self.edge = connecting_edge
+
+    def __str__(self):
+        return f'(id:{self.node.id}: {self.edge})'
+
+
+"""
+
+Class Node
+
+"""
+
 
 class Node:
 
@@ -26,18 +49,72 @@ class Node:
         self.id = node_id
         self.neighbours = {}
 
-    def add_neighbour(self, neighbour_id, edge):
-        self.neighbours[neighbour_id] = edge
-
-    def get_neighbouring_unvisited_paths(self):
-        paths = []
-        # ...
-        # TODO
-        # ...
-        return paths
+    def add_neighbour(self, neighbour_node, connecting_edge):
+        self.neighbours[neighbour_node.id] = Neighbour(neighbour_node, connecting_edge)
 
     def __str__(self):
-        return f'id:{self.id} -> {[f"(id:{k} {v})" for (k, v) in self.neighbours.items()]}'
+        return f'id:{self.id} -> {[f"(id:{n_id} {neighbour.edge})" for (n_id, neighbour) in self.neighbours.items()]}'
+
+
+"""
+
+Class Path
+
+"""
+
+
+class Path:
+
+    def __init__(self, start_node=None):
+        self.length = 0
+        self.pheromone = 1
+        if start_node is not None:
+            self.nodes = [start_node]
+        else:
+            self.nodes = []
+
+    def copy(self):
+        new_path = Path()
+        new_path.nodes = self.nodes.copy()
+        new_path.length = self.length
+        return new_path
+
+    def add_node(self, node, edge):
+        self.nodes.append(node)
+        self.length += edge.length
+        self.pheromone *= edge.pheromone
+
+    def concat_with(self, path):
+        self.nodes.extend(path.nodes[1:])  # Remove first element of path?
+        self.length += path.length
+        self.pheromone *= path.pheromone
+
+    def to_id_path(self):
+        return [node.id for node in self.nodes]
+
+    def to_pair_id_path(self):
+        path = []
+        prev = None
+        for node in self.nodes:
+            if prev is None:
+                prev = node
+                continue
+            path.append((prev.id, node.id))
+            prev = node
+        return path
+
+    def is_empty(self):
+        return len(self.nodes) == 0
+
+    def __str__(self):
+        return f'len={self.length} {[str(n.id) for n in self.nodes]}'
+
+
+"""
+
+Class CityGraph
+
+"""
 
 
 class CityGraph:
@@ -46,7 +123,6 @@ class CityGraph:
         self.degree = len(osmnx_graph.nodes())
         self.nodes = {}  # Dictionary indexed on (node_id)
         self.edges = []
-        # self.edges = {}  # Dictionary indexed on (a_node_id, b_node_id) or (b_node_id, a_node_id)
         self.setup(osmnx_graph)
 
     def add_node(self, node_id):
@@ -55,12 +131,6 @@ class CityGraph:
         return self.nodes[node_id]
 
     def add_edge(self, length):
-        # if (start_id, end_id) in self.edges:
-        #     return self.edges[(start_id, end_id)]
-        # elif (end_id, start_id) in self.edges:
-        #     return self.edges[(end_id, start_id)]
-        # else:
-        #     self.edges[(start_id, end_id)] = new_edge
         new_edge = Edge(length, 1.0 / self.degree)
         self.edges.append(new_edge)
         return new_edge
@@ -74,6 +144,6 @@ class CityGraph:
             start_node = self.add_node(start_id)
             end_node = self.add_node(end_id)
 
-            start_node.add_neighbour(end_id, edge)
+            start_node.add_neighbour(end_node, edge)
             if not edge_data['oneway']:
-                end_node.add_neighbour(start_id, edge)
+                end_node.add_neighbour(start_node, edge)
