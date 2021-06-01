@@ -91,6 +91,9 @@ class MultiGraph:
 
     def add_edge(self, u, v, weight):  # Undirected for now
 
+        if u == v:
+            return
+
         # Create connecting edge
         edge = Edge(u, v, weight)
 
@@ -116,3 +119,10 @@ class MultiGraph:
     def add_edges(self, edges):
         for edge in edges:
             self.add_edge(*edge)
+
+    def odd_degree_nodes(self):
+        odd_degree_nodes = []
+        for node in self.nodes.values():
+            if len(node.neighbours) % 2 != 0:
+                odd_degree_nodes.append(node.id)
+        return odd_degree_nodes
