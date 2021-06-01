@@ -5,6 +5,7 @@ import time
 import numpy
 import scipy.sparse
 from datetime import datetime
+from scipy.sparse.csgraph import shortest_path
 
 from graph_adj_mat import GraphAdjMat
 from graph import Graph
@@ -18,6 +19,8 @@ import imageio
 
 import networkx as nx
 import osmnx as ox
+
+ox.config(use_cache=True, log_console=False)
 
 
 def render_path_as_gif(initial_graph_edges, path,
@@ -75,38 +78,7 @@ def render_path_as_gif(initial_graph_edges, path,
             writer.append_data(image)
 
 
-# def convert_osmnx_geo_coords_to_image_coords(osmnx_graph):
-#     def keep_significant(value):
-#         return int(str(int(value * 10000000))[2:])
-#
-#     node_coords = {}
-#     min_c = sys.maxsize, sys.maxsize
-#     max_c = 0, 0
-#     for node_id, data in osmnx_graph.nodes(data=True):
-#         x, y = keep_significant(data['x']), keep_significant(data['y'])
-#         node_coords[node_id] = (x, y)
-#         min_c = (min(min_c[0], x), min(min_c[1], y))
-#         max_c = (max(max_c[0], x), max(max_c[1], y))
-#         # print(node_id, '->', (x, y), (data['x'], data['y']))
-#
-#     # print('min_x =', min_c[0], 'min_y =', min_c[1])
-#     # print('max_x =', max_c[0], 'max_y =', max_c[1])
-#
-#     # diff = (max_c[0] - min_c[0], max_c[1] - min_c[1])
-#     # ratio = diff[0] / diff[1]
-#     # print('diff =', diff)
-#     # print('ratio =', ratio)
-#
-#     for node_id, coords in node_coords.items():
-#         new_coords = (coords[0] - min_c[0], coords[1] - min_c[1])
-#         new_coords = (new_coords[0] / 100, new_coords[1] / 100)
-#         node_coords[node_id] = new_coords
-#         # print(node_id, '->', new_coords)
-#
-#     return node_coords
-
-
-def render_osmnx_path(osmnx_graph, edge_path, duration_between_steps=0.5, step_size=1):
+def render_osmnx_path(osmnx_graph, edge_path, duration_between_steps=0.5, step_size=1, edge_width=1.0):
 
     time_stamp = int(time.time())
     output_dir = f'render_files_{time_stamp}'
@@ -132,8 +104,8 @@ def render_osmnx_path(osmnx_graph, edge_path, duration_between_steps=0.5, step_s
 
     def render_path(path, filename, highlight_last=False):
         edge_colors = get_edge_colors(path, highlight_last)
-        ox.plot_graph(osmnx_graph, node_color='w', node_edgecolor='k', node_size=5, node_zorder=3,
-                      edge_color=edge_colors, edge_linewidth=1,
+        ox.plot_graph(osmnx_graph, node_color='w', node_edgecolor='k', node_size=0, node_zorder=3,
+                      edge_color=edge_colors, edge_linewidth=edge_width,
                       show=False, close=True, save=True, filepath=filename)
         files.append(filename)
 
@@ -166,7 +138,7 @@ def render_osmnx_path(osmnx_graph, edge_path, duration_between_steps=0.5, step_s
 
 
 def main():
-    """Manually create a graph"""
+    # """Manually create a graph"""
     # edges = [  # 6 nodes
     #     (0, 1, 1),
     #     (0, 2, 1),
@@ -193,6 +165,7 @@ def main():
 
     # osmnx_graph = ox.graph_from_place('Arracourt, France', network_type='drive')
     osmnx_graph = ox.graph_from_place('Villejuif, France', network_type='drive')
+    # osmnx_graph = ox.graph_from_place('Montreal, Canada', network_type='drive')
     osmnx_graph = nx.convert_node_labels_to_integers(osmnx_graph)
     graph_initial = GraphAdjMat()
     graph_initial.load_osmnx_graph(osmnx_graph)
@@ -201,8 +174,12 @@ def main():
     print(graph_initial)
     # graph_initial.to_dot(filename='initial_graph')
 
+    """Create ajd list graph for later"""
+    graph_augmented = MultiGraph(edges=graph_initial.edge_list())
+
     """Find odd degree nodes"""
-    odd_degree_nodes = graph_initial.odd_degree_nodes()
+    odd_degree_nodes = graph_augmented.odd_degree_nodes()
+
     print(f'{len(odd_degree_nodes)} odd_degree_nodes =', odd_degree_nodes)
 
     """Compute all possible odd node pairs"""
@@ -211,19 +188,22 @@ def main():
     print(f'{len(odd_node_pairs)} odd node pairs')
 
     """Compute the minimum distance for every pair"""
-    odd_node_pairs_shortest_distance = {}
     csr_mat = scipy.sparse.csr_matrix(graph_initial.mat)
     print('computing odd node pairs shortest paths')
     tstart = datetime.now()
-    for pair in odd_node_pairs:
-        _, odd_node_pairs_shortest_distance[pair] = GraphAdjMat.shortest_path(csr_mat, *pair)
-        # print(f'pair={pair} dist={dist}')
+    dist_matrix = shortest_path(csr_mat, directed=False, return_predecessors=False)  # Dist matrix of the whole graph
     tend = datetime.now()
     print('done, took', tend - tstart)
 
+    odd_node_pairs_distance_list = []  # (u, v, d)
+    print('assigning each pair its min distance')
+    for pair in odd_node_pairs:
+        u, v = pair
+        odd_node_pairs_distance_list.append((u, v, dist_matrix[u, v]))
+    print('done')
+
     """Create a complete graph of those pairs with the minimum distance as weight"""
-    odd_node_pairs_list = [(*pair, dist) for pair, dist in odd_node_pairs_shortest_distance.items()]
-    graph_odd_complete = Graph(odd_node_pairs_list)
+    graph_odd_complete = Graph(odd_node_pairs_distance_list)
     # print(graph_odd_complete.edges)
 
     # graph_odd_complete.to_dot(filename='graph_odd_complete')
@@ -234,15 +214,15 @@ def main():
     min_weight_pairs = edmonds.min_weight_matching(graph_odd_complete)
     tend = datetime.now()
     print('done, took', tend - tstart)
-    print('min_weight_pairs =', min_weight_pairs)
+    print(f'{len(min_weight_pairs)} min_weight_pairs =', min_weight_pairs)
 
     # graph_initial.to_dot(filename='graph_initial_with_minimum_weight_matching', additional_edges=min_weight_pairs)
 
     """Built up the augmented graph (initial graph + "fake" edges between the pairs found in previous computation)"""
-    graph_augmented = MultiGraph(edges=graph_initial.edge_list())
     for pair in min_weight_pairs:
         pair = utils.normalize_pair(*pair)
-        graph_augmented.add_edge(*pair, odd_node_pairs_shortest_distance[pair])
+        _, dist = GraphAdjMat.shortest_path(csr_mat, *pair)
+        graph_augmented.add_edge(*pair, dist)
 
     # print(graph_augmented)
     # graph_augmented.to_dot(filename='graph_augmented')
@@ -266,7 +246,8 @@ def main():
 
     # render_path_as_gif(graph_initial.edge_list(), final_path)
 
-    render_osmnx_path(osmnx_graph, final_path, step_size=23)
+    # render_osmnx_path(osmnx_graph, final_path, step_size=23)
+    render_osmnx_path(osmnx_graph, final_path, step_size=18, edge_width=0.5)
 
 
 if __name__ == '__main__':
