@@ -6,6 +6,9 @@ cache/
 # C extensions
 *.so
 
+*.png
+*.gif
+*.txt
 # Distribution / packaging
 .Python
 build/
