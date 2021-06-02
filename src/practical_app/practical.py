@@ -1,5 +1,6 @@
 import networkx as nx
 import osmnx as ox
+import osmnx.utils_graph
 from cdlib import algorithms
 
 
@@ -33,11 +34,12 @@ def split_graph(graph):
             communities[comm_id] = comm_set
 
         for comm_id, comm_set in communities.items():
+
             sub_g = g.copy()
             sub_g.remove_nodes_from(initial_nodes - comm_set)  # Remove nodes that are not in the community
-            new_nodes = set(sub_g.nodes)
-            strongly_connected_nodes = max(nx.strongly_connected_components(sub_g), key=len)
-            sub_g.remove_nodes_from(new_nodes - strongly_connected_nodes)  # Keep only strongest connected component
+
+            sub_g = osmnx.utils_graph.get_largest_component(sub_g, strongly=True)
+
             print(f'sub_g has {len(sub_g.nodes)} nodes')
             if len(sub_g.nodes) > MAX_NB_OF_NODES:
                 to_split.add(sub_g)
@@ -61,14 +63,12 @@ def main():
     colors = ['darkviolet', 'blue', 'deeppink', 'lime', 'indigo', 'deepskyblue', 'green',
         'maroon', 'teal', 'yellow', 'fuchsia', 'gold', 'orange', 'aqua', 'red','mint']
 
-    i = 0
-    for g in sub_graphs:
+    for i, g in enumerate(sub_graphs):
         color = colors[i % len(colors)]
         for node in g.nodes:
             node_colors_dict[node] = color
         for edge in g.edges:
             edge_colors_dict[edge] = color
-        i += 1
 
     node_colors = [node_colors_dict.get(node, 0) for node in graph.nodes]
     edge_colors = [edge_colors_dict.get(edge, 0) for edge in graph.edges]
