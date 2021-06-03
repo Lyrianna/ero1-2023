@@ -1,0 +1,123 @@
+import sys
+from datetime import datetime
+
+import scipy
+import scipy.sparse
+import numpy as np
+import networkx as nx
+
+
+def path_from_pred_matrix(pred_matrix, u, v):
+    path = []
+    prev = v
+    node = None
+    path.append((node, prev))
+    while node != u:
+        node = pred_matrix[u, prev]
+        path.append((node, prev))
+        prev = node
+    path.reverse()
+    path.pop()  # remove trash node
+    return path
+
+
+def optimal_path(graph):
+    """
+
+    :param graph: osmnx MultiDiGraph, needs to be strongly connected and nodes normalized
+    :return:
+    """
+
+    if not nx.is_strongly_connected(graph):
+        raise Exception('Graph is not strongly connected')
+
+    if nx.is_eulerian(graph):
+        print('Graph is already Eulerian!')
+        return list(nx.algorithms.eulerian_circuit(graph)), 0
+
+    n = len(graph.nodes)
+    edges = [(u, v, d['length']) for u, v, d in graph.edges(data=True)]
+    total_cost = 0
+
+    print('Building adjacency matrix and in/out sets')
+
+    # Build adj matrix of original graph and find vertex deltas
+    mat = np.zeros(shape=(n, n), dtype=np.float)
+    delta = [0] * n
+
+    for u, v, c in edges:
+        total_cost += c
+        if mat[u, v] == 0 or c < mat[u, v]:
+            mat[u, v] = c
+        delta[u] += 1
+        delta[v] -= 1
+
+    # Build need_in / need_out sets
+    need_in = {}
+    need_out = {}
+
+    for i in range(n):
+        if delta[i] < 0:
+            need_out[i] = abs(delta[i])
+        elif delta[i] > 0:
+            need_in[i] = delta[i]
+
+    print('Computing shortest paths')
+
+    t_start = datetime.now()
+    csr_mat = scipy.sparse.csr_matrix(mat)
+    dist_matrix, predecessors = scipy.sparse.csgraph.shortest_path(csr_mat, return_predecessors=True)
+    t_end = datetime.now()
+    print('done, took: ', t_end - t_start)
+
+    print('Creating bipartite graph')
+
+    bipartite_g = nx.DiGraph()
+
+    # Generate unique ids for each combinations
+    for u, u_c in need_out.items():
+        for i in range(u_c):
+            for v, v_c in need_in.items():
+                for j in range(v_c):
+                    s = f'{u}_{i}'
+                    e = f'{v}_{j}'
+                    bipartite_g.add_edge(s, e, weight=dist_matrix[u, v])
+
+    print('Computing minimum weight full matching')
+
+    matching = nx.algorithms.bipartite.matching.minimum_weight_full_matching(bipartite_g)
+
+    def conv(label):
+        """Convert custom matching label back to initial node"""
+        return int(label.split('_')[0])
+
+    # Convert to list
+    matching = list((conv(k), conv(v)) for k, v in matching.items())
+
+    # Convert unique ids back to original ids
+    matching = [(u, v) for u, v in matching if u in need_out]  # Keep only valid edges (a -> b and not b -> a)
+
+    eulerized_graph = nx.MultiDiGraph()
+
+    for u, v, c in edges:
+        eulerized_graph.add_edge(u, v, weight=c)
+
+    additional_cost = 0
+
+    # For reach matched pair, double up edges along their path
+    for u, v in matching:
+
+        # Reconstruct shortest path of the pair from predecessors matrix
+        sp = path_from_pred_matrix(predecessors, u, v)
+
+        # Add edges of path
+        for i, j in sp:
+            c = mat[i, j]
+            additional_cost += c
+            eulerized_graph.add_edge(i, j, weight=c)
+
+    ratio = 100 * additional_cost / total_cost
+
+    final_path = list(nx.algorithms.eulerian_circuit(eulerized_graph))
+
+    return final_path, ratio

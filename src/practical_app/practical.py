@@ -3,14 +3,12 @@ import osmnx as ox
 import osmnx.utils_graph
 from cdlib import algorithms
 
-
 ox.config(use_cache=True, log_console=False)
 
 MAX_NB_OF_NODES = 15000
 
 
 def split_graph(graph):
-
     final_graphs = []
     to_split = set()
     to_split.add(graph.copy())
@@ -49,19 +47,13 @@ def split_graph(graph):
     return final_graphs
 
 
-def main():
-    # graph = ox.graph_from_place('Villejuif, France', network_type='drive')
-    graph = ox.graph_from_place('Montreal, Canada', network_type='drive')
-    graph = nx.convert_node_labels_to_integers(graph)
+def render_sub_graphs(og_graph, sub_graphs):
 
-    sub_graphs = split_graph(graph)
-    print('graphs of sizes ', [len(g) for g in sub_graphs])
-
-    node_colors_dict = dict.fromkeys(graph.nodes)
-    edge_colors_dict = dict.fromkeys(graph.edges)
+    node_colors_dict = dict.fromkeys(og_graph.nodes)
+    edge_colors_dict = dict.fromkeys(og_graph.edges)
 
     colors = ['darkviolet', 'blue', 'deeppink', 'lime', 'indigo', 'deepskyblue', 'green',
-        'maroon', 'teal', 'yellow', 'fuchsia', 'gold', 'orange', 'aqua', 'red','mint']
+              'maroon', 'teal', 'yellow', 'fuchsia', 'gold', 'orange', 'aqua', 'red', 'mint']
 
     for i, g in enumerate(sub_graphs):
         color = colors[i % len(colors)]
@@ -70,17 +62,27 @@ def main():
         for edge in g.edges:
             edge_colors_dict[edge] = color
 
-    node_colors = [node_colors_dict.get(node, 0) for node in graph.nodes]
-    edge_colors = [edge_colors_dict.get(edge, 0) for edge in graph.edges]
+    node_colors = [node_colors_dict.get(node, 0) for node in og_graph.nodes]
+    edge_colors = [edge_colors_dict.get(edge, 0) for edge in og_graph.edges]
 
     edge_colors = [c if c is not None else 'white' for c in edge_colors]
 
+    ox.plot_graph(og_graph,
+                  node_size=0, node_zorder=2, node_color=node_colors,
+                  edge_linewidth=0.1, edge_color=edge_colors,
+                  show=False, close=True, save=True, filepath='output.png')
+
+
+def main():
+    # graph = ox.graph_from_place('Villejuif, France', network_type='drive')
+    graph = ox.graph_from_place('Montreal, Canada', network_type='drive')
+    graph = nx.convert_node_labels_to_integers(graph)
+
+    sub_graphs = split_graph(graph)
+    print('graphs of sizes ', [len(g) for g in sub_graphs])
     print(f'{len(sub_graphs)} sub graphs', [nx.is_strongly_connected(g) for g in sub_graphs])
 
-    ox.plot_graph(graph,
-                  node_size=0, node_zorder=2, node_color=node_colors,
-                  edge_linewidth=0.1,  edge_color=edge_colors,
-                  show=False, close=True, save=True, filepath='output.png')
+    render_sub_graphs(graph, sub_graphs)
 
 
 if __name__ == '__main__':
