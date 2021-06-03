@@ -6,13 +6,17 @@ import osmnx.utils_graph
 from datetime import datetime
 
 import directed_solver
+import graph_partitionning
+import graph_rendering
 
 ox.config(use_cache=True, log_console=False)
 
 
 def main():
-    # graph = ox.graph_from_place('Montreal, Canada', network_type='drive')
-    graph = ox.graph_from_place('Villejuif, France', network_type='drive')
+
+    """Load main graph"""
+    graph = ox.graph_from_place('Montreal, Canada', network_type='drive')
+    # graph = ox.graph_from_place('Villejuif, France', network_type='drive')
     # graph = ox.graph_from_place('Arracourt, France', network_type='drive')
     # graph = ox.graph_from_place('Arbois, France', network_type='drive')
     # graph = ox.graph_from_place('Arras-en-Lavedan, France', network_type='drive')
@@ -25,17 +29,22 @@ def main():
     print('Graph degree =', len(graph.nodes))
     print('Number of edges =', len(graph.edges))
 
-    print('Computing path...')
-    t_start = datetime.now()
-    path, ratio = directed_solver.optimal_path(graph)
-    t_end = datetime.now()
-    print('Done, took in total:', t_end - t_start)
-    print('Path length =', len(path))
-    print(f'Ratio = {ratio:.2f}% (additionally covered distance compared to initial total road length)')
-    print(path)
+    sub_graphs = graph_partitionning.split_graph(graph)
+    print(f'({len(sub_graphs)}) sub graphs of sizes {[len(g) for g in sub_graphs]}')
 
-    # graph_rendering.render_osmnx_path(graph, path, duration_between_steps=0.3, step_size=1000, edge_width=0.1)
-    # graph_rendering.render_osmnx_path(graph, path, duration_between_steps=0.3, step_size=50, edge_width=0.5)
+    paths = []
+    for g in sub_graphs:
+        print('Computing path...')
+        t_start = datetime.now()
+        path, ratio = directed_solver.optimal_path(g)
+        t_end = datetime.now()
+        print('Done, took in total:', t_end - t_start)
+        print('Path length =', len(path))
+        print(f'Ratio = {ratio:.2f}% (additionally covered distance compared to initial total road length)')
+        print()
+        paths.append(path)
+
+    graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=200, edge_width=0.1)
 
 
 if __name__ == '__main__':

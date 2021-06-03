@@ -21,6 +21,25 @@ def path_from_pred_matrix(pred_matrix, u, v):
     return path
 
 
+def create_current_to_old_node_label_mapping(graph):
+    mapping = {}
+    for node, d in graph.nodes(data=True):
+        mapping[node] = d['old_label']
+    return mapping
+
+
+def remap_path_labels(path, mapping):
+
+    def remap_node(node):
+        return mapping[node]
+
+    for i in range(len(path)):
+        u, v = path[i]
+        path[i] = (remap_node(u), remap_node(v))
+
+    return path
+
+
 def optimal_path(graph):
     """
 
@@ -28,12 +47,15 @@ def optimal_path(graph):
     :return:
     """
 
+    graph = nx.convert_node_labels_to_integers(graph, label_attribute='old_label')
+    label_mapping = create_current_to_old_node_label_mapping(graph)
+
     if not nx.is_strongly_connected(graph):
         raise Exception('Graph is not strongly connected')
 
     if nx.is_eulerian(graph):
         print('Graph is already Eulerian!')
-        return list(nx.algorithms.eulerian_circuit(graph)), 0
+        return remap_path_labels(list(nx.algorithms.eulerian_circuit(graph)), label_mapping), 0
 
     n = len(graph.nodes)
     edges = [(u, v, d['length']) for u, v, d in graph.edges(data=True)]
@@ -123,5 +145,6 @@ def optimal_path(graph):
     print(f'Ratio = {additional_cost}')
 
     final_path = list(nx.algorithms.eulerian_circuit(eulerized_graph))
+    final_path = remap_path_labels(final_path, label_mapping)
 
     return final_path, ratio

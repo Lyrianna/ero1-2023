@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import imageio
 
@@ -24,11 +25,7 @@ class EdgeInfo:
         self.update_color()
 
 
-def render_osmnx_path(graph, edge_path, duration_between_steps=0.5, step_size=1, edge_width=1.0):
-
-    visit_times = {}
-    for edge in edge_path:
-        visit_times[edge] = 0
+def render_path_or_paths(graph, path=None, paths=None, duration_between_steps=0.5, step_size=1, edge_width=1.0):
 
     edge_info_dict = {}
     for index, edge in enumerate(graph.edges):
@@ -39,8 +36,16 @@ def render_osmnx_path(graph, edge_path, duration_between_steps=0.5, step_size=1,
         edge_info_dict[edge].append(EdgeInfo(index, (u, v)))
 
     path_info = []
-    for edge in edge_path:
-        path_info.append(edge_info_dict[edge])
+
+    def init_path_info(path):
+        for edge in path:
+            path_info.append(edge_info_dict[edge])
+
+    if path is not None:
+        init_path_info(path)
+    elif paths is not None:
+        for p in paths:
+            init_path_info(p)
 
     edge_colors = ['w'] * len(graph.edges)  # List with the ith value representing the ith edge's color in graph.edges
 
@@ -65,18 +70,32 @@ def render_osmnx_path(graph, edge_path, duration_between_steps=0.5, step_size=1,
                       show=False, close=True, save=True, filepath=filename)
         files.append(filename)
 
-    # Render by big steps
-    for i in range(len(edge_path) // step_size + 1):
-
-        start_i, end_i = step_size * i, step_size * (i + 1)
-        edges_to_visit = edge_path[start_i:end_i]
-
+    def render_path_step(path, step_index):
+        start_i, end_i = step_size * step_index, step_size * (step_index + 1)
+        edges_to_visit = path[start_i:end_i]
         update_edge_colors(edges_to_visit)
 
-        render_path(f'{output_dir}/step_{i:05}.png')
+    # Render empty step
+    render_path(f'{output_dir}/_.png')
+
+    # Render by big steps
+    if path is not None:
+        nb_steps = len(path) // step_size + 1
+        for i in range(nb_steps):
+            print(f'Rendering step {i}/{nb_steps}')
+            render_path_step(path, i)
+            render_path(f'{output_dir}/step_{i:05}.png')
+    elif paths is not None:
+        max_len = len(max(paths, key=len))
+        nb_steps = max_len // step_size + 1
+        for i in range(nb_steps):
+            print(f'Rendering step {i}/{nb_steps}')
+            for path in paths:
+                render_path_step(path, i)
+            render_path(f'{output_dir}/step_{i:05}.png')
 
     # Render final step
-    render_path(f'{output_dir}/step_{len(edge_path)+1:05}.png')
+    render_path(f'{output_dir}/step_{9999}.png')
 
     print(files)
 
@@ -87,3 +106,29 @@ def render_osmnx_path(graph, edge_path, duration_between_steps=0.5, step_size=1,
             writer.append_data(image)
 
     print(output_dir)
+
+
+def render_sub_graphs(og_graph, sub_graphs):
+
+    node_colors_dict = dict.fromkeys(og_graph.nodes)
+    edge_colors_dict = dict.fromkeys(og_graph.edges)
+
+    colors = ['darkviolet', 'blue', 'deeppink', 'lime', 'indigo', 'deepskyblue', 'green',
+              'maroon', 'teal', 'yellow', 'fuchsia', 'gold', 'orange', 'aqua', 'red', 'mint']
+
+    for i, g in enumerate(sub_graphs):
+        color = colors[i % len(colors)]
+        for node in g.nodes:
+            node_colors_dict[node] = color
+        for edge in g.edges:
+            edge_colors_dict[edge] = color
+
+    node_colors = [node_colors_dict.get(node, 0) for node in og_graph.nodes]
+    edge_colors = [edge_colors_dict.get(edge, 0) for edge in og_graph.edges]
+
+    edge_colors = [c if c is not None else 'white' for c in edge_colors]
+
+    ox.plot_graph(og_graph,
+                  node_size=0, node_zorder=2, node_color=node_colors,
+                  edge_linewidth=0.1, edge_color=edge_colors,
+                  show=False, close=True, save=True, filepath='partitioning.png')
