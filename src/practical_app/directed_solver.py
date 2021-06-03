@@ -68,7 +68,7 @@ def optimal_path(graph):
     csr_mat = scipy.sparse.csr_matrix(mat)
     dist_matrix, predecessors = scipy.sparse.csgraph.shortest_path(csr_mat, return_predecessors=True)
     t_end = datetime.now()
-    print('done, took: ', t_end - t_start)
+    print('Done, took: ', t_end - t_start)
 
     print('Creating bipartite graph')
 
@@ -117,6 +117,10 @@ def optimal_path(graph):
             eulerized_graph.add_edge(i, j, weight=c)
 
     ratio = 100 * additional_cost / total_cost
+
+    print(f'Total city road length = {int(total_cost)}')
+    print(f'Additional travelled distance (already visited roads) = {int(additional_cost)}')
+    print(f'Ratio = {additional_cost}')
 
     final_path = list(nx.algorithms.eulerian_circuit(eulerized_graph))
 

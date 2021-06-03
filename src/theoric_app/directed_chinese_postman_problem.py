@@ -8,48 +8,32 @@ class CPP:
         self.n = n
         self.delta = [0] * n
         self.defined = np.full(shape=mat_shape, fill_value=False)
-        self.c = np.zeros(shape=mat_shape)  # floats
-        self.f = np.zeros(shape=mat_shape, dtype=np.int8)
-        self.arcs = np.zeros(shape=mat_shape, dtype=np.int8)
-        self.path = np.zeros(shape=mat_shape, dtype=np.int8)
+        self.c = np.zeros(shape=mat_shape, dtype=np.float)  # floats
+        self.f = np.zeros(shape=mat_shape, dtype=np.int)
+        self.arcs = np.zeros(shape=mat_shape, dtype=np.int)
+        self.path = np.zeros(shape=mat_shape, dtype=np.int)
         self.basic_cost = 0.
 
-        self.neg = []
-        self.pos = []
+        self.neg = set()
+        self.pos = set()
 
     def solve(self):
-
-        print('\n--- Initialization')
-        print('c =\n', self.c)
-        print('defined =\n', self.defined)
-        print('path =\n', self.path)
-        print('arcs =\n', self.arcs)
-        print('delta =\n', self.delta)
-
-        print('\n--- Least cost paths')
+        print('--- Computing least cost paths')
         self.least_cost_paths()
-        print('path =\n', self.path)
-        print('c =\n', self.c)
-        print('defined =\n', self.defined)
-
-        print('\n--- Check valid')
+        print('--- Checking validity of graph')
         self.check_valid()
-
-        print('\n--- Find unbalanced')
+        print('--- Finding unbalanced nodes')
         self.find_unbalanced()
-        print('neg =\n', self.neg)
-        print('pos =\n', self.pos)
-
-        print('\n--- Find feasible')
+        print('--- Finding feasible edges')
         self.find_feasible()
-        print('f =\n', self.f)
-        print('delta =\n', self.delta)
-
-        print('\n--- Improvements')
+        print('--- Improving...')
         while self.improvements():
             continue
 
     def add_arc(self, u, v, cost):
+
+        # if u < 0 or v < 0:
+        #     print(f'adding arc with negative indexes?! {(u, v, cost)}')
 
         self.basic_cost += cost
 
@@ -63,9 +47,7 @@ class CPP:
         self.delta[v] -= 1
 
     def add_arcs(self, arcs):
-        print('add_arcs')
         for arc in arcs:
-            print(arc)
             self.add_arc(*arc)
 
     def least_cost_paths(self):
@@ -79,7 +61,18 @@ class CPP:
                             self.c[i, j] = self.c[i, k] + self.c[k, j]
                             self.defined[i, j] = True
                             if i == j and self.c[i, j] < 0:
+                                print(f'negative cycle on node {i}')
                                 return  # stop on negative cycle
+                        # if self.defined[k, j]:
+                        #     combined_cost = self.c[i, k] + self.c[k, j]
+                        #     # If path not defined or better path available
+                        #     if not self.defined[i, j] or combined_cost < self.c[i, j]:
+                        #         self.path[i, j] = self.path[i, k]
+                        #         self.c[i, j] = combined_cost
+                        #         self.defined[i, j] = True
+                        #         if i == j and self.c[i, j] < 0:
+                        #             print(f'negative cycle on node {i}')
+                        #             return  # stop on negative cycle
 
     def check_valid(self):
         for i in range(self.n):
@@ -91,45 +84,44 @@ class CPP:
 
     def find_unbalanced(self):
 
-        n_neg, n_pos = 0, 0  # number of vertices of negative/positive delta
-
-        for i in range(self.n):
-            if self.delta[i] < 0:
-                n_neg += 1
-            elif self.delta[i] > 0:
-                n_pos += 1
-
-        self.neg = [0] * n_neg
-        self.pos = [0] * n_pos
-        n_neg, n_pos = 0, 0
-
         for i in range(self.n):  # initialise sets
             if self.delta[i] < 0:
-                self.neg[n_neg] = i
-                n_neg += 1
+                self.neg.add(i)
             elif self.delta[i] > 0:
-                self.pos[n_pos] = i
-                n_pos += 1
+                self.pos.add(i)
 
     def find_feasible(self):
 
-        delta = self.delta.copy()
+        # delta = self.delta.copy()
 
         for i in self.neg:
             for j in self.pos:
-                self.f[i, j] = min(-delta[i], delta[j])
-                delta[i] += self.f[i, j]
-                delta[j] -= self.f[i, j]
+                self.f[i, j] = min(-self.delta[i], self.delta[j])
+                self.delta[i] += self.f[i, j]
+                self.delta[j] -= self.f[i, j]
 
     def improvements(self):
+
+        print('improving')
+
+        sort_neg = list(self.neg)
+        sort_pos = list(self.pos)
+        sort_neg.sort()
+        sort_pos.sort()
+        print('neg =', sort_neg)
+        print('pos =', sort_pos)
 
         residual = CPP(self.n)
 
         for i in self.neg:
             for j in self.pos:
                 residual.add_arc(i, j, self.c[i, j])
+                # if i == 385 or j == 385:
+                #     print(f'added arc {(i, j, self.c[i, j])}')
                 if self.f[i, j] != 0:
                     residual.add_arc(j, i, -self.c[i, j])
+                    # if i == 385 or j == 385:
+                    #     print(f'added arc {(j, i, -self.c[i, j])}')
 
         residual.least_cost_paths()  # find a negative cycle
 
@@ -137,22 +129,34 @@ class CPP:
 
             if residual.c[i, i] < 0:  # cancel the cycle (if any)
 
+                print(f'residual.c[{i}, {i}] = {residual.c[i, i]}')
+
                 k, u, v = 0, 0, 0
                 k_unset = True
 
                 u = i
+                count = 0
                 while True:  # find k to cancel
                     v = residual.path[u, i]
+                    print(f'residual.path[{u}, {i}] = {v}')
+                    print('1 -', (u, v))
+                    # print(residual.path)
                     if residual.c[u, v] < 0 and (k_unset or k > self.f[v, u]):
+                        print('entered if')
                         k = self.f[v, u]
                         k_unset = False
                     u = v
+                    count += 1
                     if u == i:
                         break
+                    if count > 10:
+                        raise Exception('max iteration reached')
 
                 u = i
                 while True:  # cancel k along the cycle
                     v = residual.path[u, i]
+                    print(f'residual.path[{u}, {i}] = {v}')
+                    print('2 -', (u, v))
                     if residual.c[u, v] < 0:
                         self.f[v, u] -= k
                     else:
@@ -198,7 +202,6 @@ class CPP:
                 f[u, v] -= 1  # remove path
                 while u != v:  # break down path into its arcs
                     p = self.path[u, v]
-                    print(f'Take arc {u, p}')
                     path.append((u, v))
                     u = p
             else:
@@ -211,7 +214,6 @@ class CPP:
                         v = i
                         break
                 arcs[u, v] -= 1  # decrement count of parallel arcs
-                print(f'Take arc {u, v}')
                 path.append((u, v))
 
         return path
