@@ -3,4 +3,4 @@
 python3.8 -m venv venv/
 source 'venv/bin/activate'
 pip install -r requirements.txt
-python ./src/theorical_app/main.py
+python ./src/theoric_app/main.py
