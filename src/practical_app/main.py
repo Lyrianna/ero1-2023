@@ -35,7 +35,8 @@ def main():
 
     sub_graphs = graph_partitionning.split_graph(graph)
     # sub_graphs = [graph]
-    print(f'({len(sub_graphs)}) sub graphs of sizes {[len(g) for g in sub_graphs]}')
+    # print(f'({len(sub_graphs)}) sub graphs (zones) of sizes {[len(g) for g in sub_graphs]}')
+    print(f'({len(sub_graphs)}) sub graphs (zones)')
 
     paths = []
     for g in sub_graphs:
@@ -58,6 +59,7 @@ def main():
         print()
         print('Rendering zones')
         graph_rendering.render_sub_graphs(graph, sub_graphs)
+        print()
         print('Rendering paths...')
         graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=500, edge_width=0.1)
 

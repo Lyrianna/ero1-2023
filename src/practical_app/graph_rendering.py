@@ -100,7 +100,7 @@ def render_path_or_paths(graph, path=None, paths=None, duration_between_steps=0.
     # Render final step
     render_path(f'{output_dir}/step_{9999}.png')
 
-    print(files)
+    # print(files)
     render_filename = f'osmnx_render_{time_stamp}.gif'
 
     # Render final gif
