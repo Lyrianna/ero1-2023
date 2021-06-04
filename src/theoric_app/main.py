@@ -1,9 +1,8 @@
+import graph_adj_mat
 # import networkx as nx
 # import osmnx as ox
 # ox.config(use_cache=True, log_console=False)
 import graph_rendering
-
-import graph_adj_mat
 import solver
 
 
