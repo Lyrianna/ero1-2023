@@ -15,7 +15,7 @@ ox.config(use_cache=True, log_console=False)
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage : python ./main [city, country]")
+        print("Usage : python ./main <city, country> [render=True]")
     """Load main graph"""
     graph = ox.graph_from_place(sys.argv[1], network_type='drive')
     # graph = ox.graph_from_place('Villejuif, France', network_type='drive')
@@ -37,7 +37,7 @@ def main():
 
     paths = []
     for g in sub_graphs:
-        print('Computing path...')
+        print('Computing paths...')
         t_start = datetime.now()
         path, ratio = directed_solver.optimal_path(g)
         t_end = datetime.now()
@@ -47,8 +47,14 @@ def main():
         print()
         paths.append(path)
 
-    graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=200, edge_width=0.1)
-    # graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=1, edge_width=1)
+    with open('paths.txt', 'w') as f:
+        for path in paths:
+            f.write(f'{path}\n')
+    print('Final paths available in "src/paths.txt" file')
+
+    if len(sys.argv) >= 3 and sys.argv[2] == 'True':
+        print('Rendering path...')
+        graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=200, edge_width=0.1)
 
 
 if __name__ == '__main__':
