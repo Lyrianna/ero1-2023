@@ -1,9 +1,8 @@
 import random
-import sys
 
 import numpy as np
-from numpy.random import choice as np_choice
 from city_graph import *
+from numpy.random import choice as np_choice
 
 
 class AntColony(object):
