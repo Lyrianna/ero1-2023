@@ -53,13 +53,18 @@ def render_path_as_gif(initial_graph_edges, path,
     draw_path()
     ga.next_step()
 
+    render_directory = 'render'
+    os.makedirs(render_directory)
+
     ga_graphs = ga.graphs()
-    files = gvanim.render(ga_graphs, 'render/step', 'png', size=img_size)
-    print(files)
-    with imageio.get_writer('render.gif', mode='I', duration=duration_between_steps) as writer:
+    files = gvanim.render(ga_graphs, f'{render_directory}/step', 'png', size=img_size)
+    render_filename = 'render.gif'
+    with imageio.get_writer(render_filename, mode='I', duration=duration_between_steps) as writer:
         for file in files:
             image = imageio.imread(file)
             writer.append_data(image)
+
+    print(f'Final path rendering available at "src/theoric_app/{render_filename}"')
 
 
 def render_osmnx_path(osmnx_graph, edge_path, duration_between_steps=0.5, step_size=1, edge_width=1.0):
