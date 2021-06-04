@@ -101,14 +101,15 @@ def render_path_or_paths(graph, path=None, paths=None, duration_between_steps=0.
     render_path(f'{output_dir}/step_{9999}.png')
 
     print(files)
+    render_filename = f'osmnx_render_{time_stamp}.gif'
 
     # Render final gif
-    with imageio.get_writer(f'osmnx_render_{time_stamp}.gif', mode='I', duration=duration_between_steps) as writer:
+    with imageio.get_writer(render_filename, mode='I', duration=duration_between_steps) as writer:
         for file in files:
             image = imageio.imread(file)
             writer.append_data(image)
 
-    print(output_dir)
+    print(f'Path rendering available at src/{render_filename}')
 
 
 def render_sub_graphs(og_graph, sub_graphs):
@@ -134,4 +135,6 @@ def render_sub_graphs(og_graph, sub_graphs):
     ox.plot_graph(og_graph,
                   node_size=0, node_zorder=2, node_color=node_colors,
                   edge_linewidth=0.1, edge_color=edge_colors,
-                  show=False, close=True, save=True, filepath='partitioning.png')
+                  show=False, close=True, save=True, filepath='zones.png')
+
+    print('Zone rendering available at "src/zones.png"')
