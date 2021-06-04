@@ -1,10 +1,10 @@
-import graph_adj_mat
-import solver
-
 # import networkx as nx
 # import osmnx as ox
 # ox.config(use_cache=True, log_console=False)
-from src.theoric_app import graph_rendering
+import graph_rendering
+
+import graph_adj_mat
+import solver
 
 
 def main():
