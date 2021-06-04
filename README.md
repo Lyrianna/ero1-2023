@@ -27,8 +27,6 @@ Our project has the following arborescence :
 
 ```
 ero1-2023
-├── cache
-├── ressources
 ├── src
 │   ├── former_solutions
 │   ├── practical_app
