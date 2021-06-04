@@ -103,6 +103,8 @@ def render_path_or_paths(graph, path=None, paths=None, duration_between_steps=0.
     # print(files)
     render_filename = f'osmnx_render_{time_stamp}.gif'
 
+    print('Rendering final gif...')
+
     # Render final gif
     with imageio.get_writer(render_filename, mode='I', duration=duration_between_steps) as writer:
         for file in files:

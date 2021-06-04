@@ -69,7 +69,7 @@ def main():
         print('Rendering zones\n')
         graph_rendering.render_sub_graphs(graph, sub_graphs)
         print('Rendering paths...\n')
-        graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=500, edge_width=0.1)
+        graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=200, edge_width=0.1)
 
 
 if __name__ == '__main__':
