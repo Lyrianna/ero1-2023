@@ -42,9 +42,23 @@ def remap_path_labels(path, mapping):
 
 def optimal_path(graph):
     """
+    Find the optimal path to traverse every edge in the graph using a minimum flow approach.
 
-    :param graph: osmnx MultiDiGraph, needs to be strongly connected and nodes normalized
-    :return:
+    Algorithm:
+
+    - find imbalanced nodes that need out edges / in edges
+
+    - create a bipartite graph connecting every need_out node to every need_in nodes
+
+    - compute bipartite minimum weight full matching
+
+    - build temporary eulerized graph by duplicating edges along best pairs of (need_out, need_in)
+    nodes found during matching
+
+    - reconstruct path
+
+    :param graph: OSMNX MultiDiGraph, needs to be strongly connected
+    :return: the optimal path
     """
 
     graph = nx.convert_node_labels_to_integers(graph, label_attribute='old_label')
@@ -61,7 +75,7 @@ def optimal_path(graph):
     edges = [(u, v, d['length']) for u, v, d in graph.edges(data=True)]
     total_cost = 0
 
-    print('Building adjacency matrix and in/out sets')
+    # print('Building adjacency matrix and in/out sets')
 
     # Build adj matrix of original graph and find vertex deltas
     mat = np.zeros(shape=(n, n), dtype=np.float)
@@ -84,15 +98,17 @@ def optimal_path(graph):
         elif delta[i] > 0:
             need_in[i] = delta[i]
 
-    print('Computing shortest paths')
+    # print('Computing shortest paths')
 
-    t_start = datetime.now()
+    # t_start = datetime.now()
+
     csr_mat = scipy.sparse.csr_matrix(mat)
     dist_matrix, predecessors = scipy.sparse.csgraph.shortest_path(csr_mat, return_predecessors=True)
-    t_end = datetime.now()
-    print('Done, took: ', t_end - t_start)
 
-    print('Creating bipartite graph')
+    # t_end = datetime.now()
+    # print('Done, took: ', t_end - t_start)
+
+    # print('Creating bipartite graph')
 
     bipartite_g = nx.DiGraph()
 
@@ -105,7 +121,7 @@ def optimal_path(graph):
                     e = f'{v}_{j}'
                     bipartite_g.add_edge(s, e, weight=dist_matrix[u, v])
 
-    print('Computing minimum weight full matching')
+    # print('Computing bipartite minimum weight full matching')
 
     matching = nx.algorithms.bipartite.matching.minimum_weight_full_matching(bipartite_g)
 
@@ -140,9 +156,9 @@ def optimal_path(graph):
 
     ratio = 100 * additional_cost / total_cost
 
-    print(f'Total city road length = {int(total_cost)}')
-    print(f'Additional travelled distance (already visited roads) = {int(additional_cost)}')
-    print(f'Ratio = {additional_cost}')
+    # print(f'Total city road length = {int(total_cost)}')
+    # print(f'Additional travelled distance (already visited roads) = {int(additional_cost)}')
+    # print(f'Ratio = {additional_cost}')
 
     final_path = list(nx.algorithms.eulerian_circuit(eulerized_graph))
     final_path = remap_path_labels(final_path, label_mapping)
