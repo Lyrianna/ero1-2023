@@ -1,4 +1,5 @@
 import os
+from collections import deque
 import sys
 import time
 import imageio
@@ -32,7 +33,7 @@ def render_path_or_paths(graph, path=None, paths=None, duration_between_steps=0.
         u, v, _ = edge
         edge = (u, v)
         if edge not in edge_info_dict:
-            edge_info_dict[edge] = []
+            edge_info_dict[edge] = deque()
         edge_info_dict[edge].append(EdgeInfo(index, (u, v)))
 
     path_info = []
@@ -55,8 +56,10 @@ def render_path_or_paths(graph, path=None, paths=None, duration_between_steps=0.
 
     def update_edge_colors(edges_to_visit):
         for edge in edges_to_visit:
-            for ei in edge_info_dict[edge]:
-                update_edge_color(ei)
+            ei_queue = edge_info_dict[edge]
+            ei = ei_queue.pop()
+            update_edge_color(ei)
+            ei_queue.appendleft(ei)
 
     time_stamp = int(time.time())
     output_dir = f'render_files_{time_stamp}'

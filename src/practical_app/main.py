@@ -32,6 +32,7 @@ def main():
     print('Number of edges =', len(graph.edges))
 
     sub_graphs = graph_partitionning.split_graph(graph)
+    # sub_graphs = [graph]
     print(f'({len(sub_graphs)}) sub graphs of sizes {[len(g) for g in sub_graphs]}')
 
     paths = []
@@ -47,6 +48,7 @@ def main():
         paths.append(path)
 
     graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=200, edge_width=0.1)
+    # graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=1, edge_width=1)
 
 
 if __name__ == '__main__':
