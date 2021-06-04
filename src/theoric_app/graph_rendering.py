@@ -53,7 +53,7 @@ def render_path_as_gif(initial_graph_edges, path,
     draw_path()
     ga.next_step()
 
-    render_directory = 'render'
+    render_directory = 'render_files'
     os.makedirs(render_directory)
 
     ga_graphs = ga.graphs()
