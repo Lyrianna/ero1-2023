@@ -111,7 +111,7 @@ def render_path_or_paths(graph, path=None, paths=None, duration_between_steps=0.
             image = imageio.imread(file)
             writer.append_data(image)
 
-    print(f'Path rendering available at src/{render_filename}')
+    print(f'Path rendering available: "{render_filename}"')
 
 
 def render_sub_graphs(og_graph, sub_graphs):
@@ -139,4 +139,4 @@ def render_sub_graphs(og_graph, sub_graphs):
                   edge_linewidth=0.1, edge_color=edge_colors,
                   show=False, close=True, save=True, filepath='zones.png')
 
-    print('Zone rendering available at "src/zones.png"')
+    print('Zone rendering available at "zones.png"')

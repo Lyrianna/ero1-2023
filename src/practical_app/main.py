@@ -50,26 +50,26 @@ def main():
         t_end = datetime.now()
         print('Done, took:', t_end - t_start)
         print('Path length =', len(path))
-        print(f'Ratio = {ratio:.2f}% (additionally covered distance compared to initial total road length)')
+        print(f'Ratio = {ratio:.2f}%')
         print()
         paths.append(path)
         ratios.append(ratio)
 
     total_t_end = datetime.now()
-    print('\nDone, in total took:', total_t_end - total_t_start)
+    print(f'Done, in total took: {total_t_end - total_t_start}\n')
     avg_ratio = sum(ratios)/len(ratios)
-    print(f'Average zone ratio = {avg_ratio:.2f}%\n')
+    print(f'Average zone ratio = {avg_ratio:.2f}% (additionally covered distance compared to initial total road length)\n')
 
     with open('paths.txt', 'w') as f:
         for path in paths:
             f.write(f'{path}\n')
-    print('Final paths available in "src/paths.txt" file\n')
+    print('Final paths available: "paths.txt"\n')
 
     if len(sys.argv) >= 3 and sys.argv[2] == 'True':
-        print('Rendering zones\n')
+        print('Rendering zones')
         graph_rendering.render_sub_graphs(graph, sub_graphs)
-        print('Rendering paths...\n')
-        graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=200, edge_width=0.1)
+        print('\nRendering paths...\n')
+        graph_rendering.render_path_or_paths(graph, paths=paths, duration_between_steps=0.3, step_size=500, edge_width=0.1)
 
 
 if __name__ == '__main__':
