@@ -6,18 +6,15 @@ Problème numéro uno : Trouver une solution de parcours opti -> Cours de THEG i
 -> Ant Optimisation
 Problème numéro deuxio : Choisir ce qu'on préfère entre un parcours complet et un parcours rapide :oof:
 """
-import os
 import sys
-import time
-import calendar
 
 import networkx as nx
 import osmnx as ox
 from city_graph import CityGraph
 
-from ant_optimisation import AntColony
+from src.former_solutions.ant_optimisation import AntColony
 
-output_dir = 'output_files'
+output_dir = '../theoric_app/output_files'
 ox.config(use_cache=True, log_console=True)
 
 
