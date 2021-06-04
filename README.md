@@ -20,9 +20,12 @@ following commands :
 ## Demo
 
 ---
-To run a demo on Montreal, run the following bash script without running the commands from the "Virtual Environment"
+To run a demo of the practical solution on Montreal, run the following bash script without running the commands from
+the "Virtual Environment"
 section :
-```./demo.sh```
+```./practical_demo.sh```
+
+And if you want to run a demo of our theorical solution, run this script : ```./theorical_demo.sh```
 
 ## Arborescence
 
