@@ -15,9 +15,9 @@ ox.config(use_cache=True, log_console=False)
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage : python ./main [city, country] [type of road to clear the snow from]")
+        print("Usage : python ./main [city, country]")
     """Load main graph"""
-    graph = ox.graph_from_place(sys.argv[1], network_type=sys.argv[2])
+    graph = ox.graph_from_place(sys.argv[1], network_type='drive')
     # graph = ox.graph_from_place('Villejuif, France', network_type='drive')
     # graph = ox.graph_from_place('Arracourt, France', network_type='drive')
     # graph = ox.graph_from_place('Arbois, France', network_type='drive')
