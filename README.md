@@ -9,9 +9,13 @@ following commands :
 
 1. Create the venv folder at the root of the project :
    ```python3 -m venv venv/```
-2. Install all the required packages: ```pip3 install -r requirements.txt```
-3. Launch the program with the following
+
+2. Launch the venv :  ```source 'venv/bin/activate'```
+3. Install all the required packages: ```pip3 install -r requirements.txt```
+4. Launch the practical program with the following
    command : ```python ./src/pratical_app/main.py  <"city, country"> [render=True]```
+
+5. To launch the theorical solution to the problem : ```python ./src/theorical_app/main.py```
 
 ## Demo
 
